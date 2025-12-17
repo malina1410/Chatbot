@@ -3,17 +3,19 @@ from django.contrib.auth.models import User
 
 class ChatSession(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    start_time = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    # --- ADD THIS LINE ---
+    title = models.CharField(max_length=200, default="New Chat") 
+    # ---------------------
 
     def __str__(self):
-        return f"Session {self.id} - {self.user.username}"
+        return f"{self.user.username} - {self.created_at}"
 
 class Message(models.Model):
     session = models.ForeignKey(ChatSession, related_name='messages', on_delete=models.CASCADE)
     content = models.TextField()
     is_user = models.BooleanField(default=True)
-    timestamp = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        ordering = ['timestamp']
+    def __str__(self):
+        return f"{self.session.id} - {self.content[:50]}"
