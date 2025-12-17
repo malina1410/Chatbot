@@ -25,50 +25,64 @@ class ChatConsumer(AsyncWebsocketConsumer):
         pass
 
     async def receive(self, text_data):
-        # 2. Rate Limiting Check
-        current_time = time.time()
-        if current_time - self.last_message_time < self.RATE_LIMIT_SECONDS:
-            await self.send(text_data=json.dumps({
-                'type': 'error',
-                'message': 'You are typing too fast. Please wait a moment.'
-            }))
-            return
-        
-        self.last_message_time = current_time
+            try:
+                # 2. Rate Limiting Check
+                current_time = time.time()
+                if current_time - self.last_message_time < self.RATE_LIMIT_SECONDS:
+                    await self.send(text_data=json.dumps({
+                        'type': 'error',
+                        'message': 'You are typing too fast. Please wait a moment.'
+                    }))
+                    return
+                
+                self.last_message_time = current_time
 
-        # 3. Parse Data
-        try:
-            data = json.loads(text_data)
-        except json.JSONDecodeError:
-            return
-            
-        content = data.get('message', '').strip()
-        session_id = data.get('session_id')
+                # 3. Parse Data
+                try:
+                    data = json.loads(text_data)
+                except json.JSONDecodeError:
+                    return
+                    
+                content = data.get('message', '').strip()
+                session_id = data.get('session_id')
 
-        if not content:
-            return
+                if not content:
+                    return
 
-        # 4. Get/Create Session & Save User Message
-        session = await self.get_or_create_session(session_id)
-        await self.save_message(session, content, is_user=True)
+                # 4. Get/Create Session & Save User Message
+                session = await self.get_or_create_session(session_id)
+                await self.save_message(session, content, is_user=True)
 
-        # 5. Build Context (The Sliding Window)
-        # We fetch last 10 messages to give the AI memory
-        history = await self.get_formatted_history(session)
+                # 5. Build Context (The Sliding Window)
+                history = await self.get_formatted_history(session)
 
-        # 6. Call the Brain (Async wrapper if needed, but Gemini is fast enough here)
-        # Ideally, we run this in a thread to not block the event loop
-        ai_reply = await database_sync_to_async(get_ai_response)(history, content)
+                # 6. Call the Brain
+                # We use a try/except here to catch AI specific errors
+                try:
+                    ai_reply = await database_sync_to_async(get_ai_response)(history, content)
+                except Exception as e:
+                    print(f"⚠️ AI GENERATION ERROR: {e}")
+                    ai_reply = "I'm having trouble thinking right now. Please try again."
 
-        # 7. Save Bot Message
-        await self.save_message(session, ai_reply, is_user=False)
+                # 7. Save Bot Message
+                await self.save_message(session, ai_reply, is_user=False)
 
-        # 8. Send Response to Frontend
-        await self.send(text_data=json.dumps({
-            'type': 'chat_message',
-            'message': ai_reply,
-            'session_id': session.id
-        }))
+                # 8. Send Response to Frontend
+                await self.send(text_data=json.dumps({
+                    'type': 'chat_message',
+                    'message': ai_reply,
+                    'session_id': session.id
+                }))
+
+            except Exception as e:
+                # --- CATCH THE CRASH HERE ---
+                import traceback
+                print("❌ CRITICAL CONSUMER ERROR:")
+                traceback.print_exc()  # This prints the exact line causing the crash
+                await self.send(text_data=json.dumps({
+                    'type': 'error',
+                    'message': f"Server Error: {str(e)}"
+                }))
 
     # --- Database Helpers ---
 
