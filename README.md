@@ -4,7 +4,9 @@ OdinX is a full-stack chatbot application built using **React** and **Django**, 
 The project was developed as part of an academic task to implement a modern chatbot system using **REST APIs and WebSockets**.
 
 ---
-
+## 🎥 Demo
+https://github.com/user-attachments/assets/b7efb516-0741-4976-b12b-c1f8d750b3f0
+---
 ## 📌 Project Objective
 
 The goal of this project is to:
