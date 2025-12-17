@@ -5,8 +5,7 @@ The project was developed as part of an academic task to implement a modern chat
 
 ---
 ## 🎥 Demo
-
-https://github.com/user-attachments/assets/b7efb516-0741-4976-b12b-c1f8d750b3f0
+https://github.com/user-attachments/assets/763dfff9-5d9d-40ea-9534-9317d91bb101
 
 ## 📌 Project Objective
 
