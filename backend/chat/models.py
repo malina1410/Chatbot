@@ -4,9 +4,7 @@ from django.contrib.auth.models import User
 class ChatSession(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
-    # --- ADD THIS LINE ---
     title = models.CharField(max_length=200, default="New Chat") 
-    # ---------------------
 
     def __str__(self):
         return f"{self.user.username} - {self.created_at}"

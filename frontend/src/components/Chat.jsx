@@ -52,9 +52,11 @@ const Chat = () => {
       const response = await fetch(`/api/sessions/${id}/messages/`, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
+        // UPDATE: Set animate: false so history loads instantly
         const formattedMessages = data.map(msg => ({
           content: msg.content,
-          isUser: msg.is_user
+          isUser: msg.is_user,
+          animate: false 
         }));
         setMessageHistory(formattedMessages);
       }
@@ -107,21 +109,36 @@ const Chat = () => {
     }
   };
 
+  // --- WebSocket Message Handling ---
   useEffect(() => {
     if (lastJsonMessage !== null) {
       if (lastJsonMessage.type === 'error') {
         alert(lastJsonMessage.message);
         return;
       }
+      
+      // If the backend says "this is for session X", update our tracking ID
+      // BUT only if we don't have one, or if it matches the current active one.
       if (lastJsonMessage.session_id) {
-        setSessionId(lastJsonMessage.session_id);
-        if (!activeSessionId) setTimeout(fetchSessions, 1000);
+        // Only update the ID if we are creating a NEW session (sessionId is null)
+        // OR if the response matches what we expect.
+        setSessionId((prev) => prev === null ? lastJsonMessage.session_id : prev);
+
+        if (!activeSessionId) {
+            setTimeout(fetchSessions, 1000);
+        }
       }
+
       if (lastJsonMessage.message) {
-         setMessageHistory((prev) => prev.concat({ content: lastJsonMessage.message, isUser: false }));
+         setMessageHistory((prev) => prev.concat({ 
+           content: lastJsonMessage.message, 
+           isUser: false,
+           animate: true 
+         }));
       }
     }
-  }, [lastJsonMessage, activeSessionId]);
+    // CRITICAL FIX: Removed 'activeSessionId' from dependencies
+  }, [lastJsonMessage]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -131,7 +148,13 @@ const Chat = () => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
-    setMessageHistory((prev) => prev.concat({ content: inputMessage, isUser: true }));
+    // UPDATE: User messages don't need animation
+    setMessageHistory((prev) => prev.concat({ 
+      content: inputMessage, 
+      isUser: true,
+      animate: false 
+    }));
+    
     sendJsonMessage({ message: inputMessage, session_id: sessionId });
     setInputMessage('');
   };
@@ -213,7 +236,8 @@ const Chat = () => {
                   ? "bg-blue-600 text-white rounded-br-none" 
                   : "bg-gray-800 text-gray-100 rounded-bl-none border border-gray-700"
               )}>
-                <MessageContent content={msg.content} />
+                {/* UPDATE: Pass the animate prop here */}
+                <MessageContent content={msg.content} animate={msg.animate} />
               </div>
             </div>
           ))}
