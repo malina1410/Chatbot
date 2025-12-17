@@ -21,7 +21,6 @@ const Chat = () => {
   const bottomRef = useRef(null);
   const WS_URL = `ws://${window.location.host}/ws/chat/`;
   
-  // WebSocket Connection
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(WS_URL, {
     onOpen: () => console.log('Connected to Brain'),
     shouldReconnect: () => true,
@@ -34,9 +33,7 @@ const Chat = () => {
 
   const fetchSessions = async () => {
     try {
-      const response = await fetch('/api/sessions/', {
-        credentials: 'include' 
-      });
+      const response = await fetch('/api/sessions/', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setSessions(data);
@@ -46,15 +43,13 @@ const Chat = () => {
     }
   };
 
-  // --- 2. Load Old Messages (Clicking Sidebar) ---
+  // --- 2. Load Old Messages ---
   const handleSelectSession = async (id) => {
     setActiveSessionId(id);
     setSessionId(id); 
     
     try {
-      const response = await fetch(`/api/sessions/${id}/messages/`, {
-        credentials: 'include'
-      });
+      const response = await fetch(`/api/sessions/${id}/messages/`, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         const formattedMessages = data.map(msg => ({
@@ -74,23 +69,16 @@ const Chat = () => {
     if (!window.confirm("Are you sure you want to delete this chat?")) return;
 
     try {
-      // Get CSRF token from cookies for Django security
       const csrfToken = document.cookie.split('csrftoken=')[1]?.split(';')[0];
-
       const response = await fetch(`/api/sessions/${id}/`, {
         method: 'DELETE',
-        headers: {
-          'X-CSRFToken': csrfToken
-        },
+        headers: { 'X-CSRFToken': csrfToken },
         credentials: 'include'
       });
 
       if (response.ok) {
         setSessions(sessions.filter(s => s.id !== id));
-        // If we deleted the active chat, clear the screen
-        if (sessionId === id) {
-          handleNewChat();
-        }
+        if (sessionId === id) handleNewChat();
       }
     } catch (error) {
       console.error("Failed to delete session:", error);
@@ -101,7 +89,6 @@ const Chat = () => {
   const handleRenameSession = async (id, newTitle) => {
     try {
       const csrfToken = document.cookie.split('csrftoken=')[1]?.split(';')[0];
-
       const response = await fetch(`/api/sessions/${id}/rename/`, {
         method: 'PATCH',
         headers: {
@@ -113,44 +100,29 @@ const Chat = () => {
       });
 
       if (response.ok) {
-        setSessions(sessions.map(s => 
-          s.id === id ? { ...s, title: newTitle } : s
-        ));
+        setSessions(sessions.map(s => s.id === id ? { ...s, title: newTitle } : s));
       }
     } catch (error) {
       console.error("Failed to rename session:", error);
     }
   };
 
-  // Handle Incoming WebSocket Messages
   useEffect(() => {
     if (lastJsonMessage !== null) {
       if (lastJsonMessage.type === 'error') {
         alert(lastJsonMessage.message);
         return;
       }
-      
-      // If backend sends a session_id, update state
       if (lastJsonMessage.session_id) {
         setSessionId(lastJsonMessage.session_id);
-        
-        // Refresh sidebar to show the new auto-generated title
-        if (!activeSessionId) {
-            // Slight delay to ensure DB is updated
-            setTimeout(fetchSessions, 1000);
-        }
+        if (!activeSessionId) setTimeout(fetchSessions, 1000);
       }
-
       if (lastJsonMessage.message) {
-         setMessageHistory((prev) => prev.concat({
-           content: lastJsonMessage.message,
-           isUser: false
-         }));
+         setMessageHistory((prev) => prev.concat({ content: lastJsonMessage.message, isUser: false }));
       }
     }
   }, [lastJsonMessage, activeSessionId]);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messageHistory]);
@@ -159,16 +131,8 @@ const Chat = () => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
-    setMessageHistory((prev) => prev.concat({
-      content: inputMessage,
-      isUser: true
-    }));
-
-    sendJsonMessage({
-      message: inputMessage,
-      session_id: sessionId
-    });
-
+    setMessageHistory((prev) => prev.concat({ content: inputMessage, isUser: true }));
+    sendJsonMessage({ message: inputMessage, session_id: sessionId });
     setInputMessage('');
   };
 
@@ -181,7 +145,7 @@ const Chat = () => {
   return (
     <div className="flex h-screen bg-gray-900 text-gray-100 overflow-hidden">
       
-      {/* Sidebar with all Props */}
+      {/* Sidebar with Logout Prop */}
       <Sidebar 
         isOpen={isSidebarOpen}
         onNewChat={handleNewChat}
@@ -190,56 +154,64 @@ const Chat = () => {
         onSelectSession={handleSelectSession}
         onDeleteSession={handleDeleteSession}
         onRenameSession={handleRenameSession}
+        onLogout={logout} 
       />
 
-      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col h-screen relative bg-gray-900 w-full transition-all duration-300">
         
-        {/* Header */}
-        <header className="flex items-center justify-between px-4 py-3 bg-gray-800/50 backdrop-blur-md border-b border-gray-700 shadow-sm z-10">
-          <div className="flex items-center gap-3">
+        {/* === HEADER REDESIGN === */}
+        <header className="flex items-center justify-between px-6 py-4 bg-gray-900 border-b border-gray-800 z-10">
+          
+          {/* Left: Sidebar Toggle + Status */}
+          <div className="flex items-center gap-4 w-1/4">
             <button 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 rounded-md hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+              className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
             </button>
+            <div className={`w-2 h-2 rounded-full ${readyState === ReadyState.OPEN ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`}></div>
+          </div>
 
-            <div className={`w-2.5 h-2.5 rounded-full shadow-[0_0_8px] ${readyState === ReadyState.OPEN ? 'bg-emerald-500 shadow-emerald-500/50' : 'bg-red-500 shadow-red-500/50'}`}></div>
-            <h1 className="text-lg font-semibold tracking-wide text-gray-100 hidden sm:block">AI Assistant</h1>
+          {/* Center: Title */}
+          <div className="flex-1 flex justify-center">
+             <h1 className="text-xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+               OdinX
+             </h1>
           </div>
           
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-400 hidden sm:inline-block">User: <span className="text-gray-200">{user?.username}</span></span>
-            <button onClick={logout} className="px-3 py-1.5 text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20 rounded-md hover:bg-red-500 hover:text-white transition-all duration-200">
-              Logout
-            </button>
+          {/* Right: User PFP */}
+          <div className="flex items-center justify-end gap-3 w-1/4">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-medium text-white">{user?.username || 'User'}</p>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg border border-gray-700">
+              {user?.username ? user.username[0].toUpperCase() : 'U'}
+            </div>
           </div>
+
         </header>
 
         {/* Chat Messages */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
           {messageHistory.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-4">
-              <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mb-2 animate-pulse">
-                <span className="text-3xl">✨</span>
+            <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-6 opacity-50">
+              <div className="w-20 h-20 bg-gray-800/50 rounded-3xl flex items-center justify-center shadow-xl backdrop-blur-sm border border-gray-700">
+                <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
               </div>
-              <div className="text-center">
-                <p className="text-xl font-medium text-white">How can I help you today?</p>
-                <p className="text-sm mt-2 text-gray-400">Ask me anything about code, writing, or analysis.</p>
-              </div>
+              <p className="text-lg font-medium text-gray-400">System Ready. Awaiting Input.</p>
             </div>
           )}
           
           {messageHistory.map((msg, idx) => (
             <div key={idx} className={clsx("flex w-full", msg.isUser ? "justify-end" : "justify-start")}>
               <div className={clsx(
-                "max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-4 shadow-md",
+                "max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-4 shadow-sm",
                 msg.isUser 
                   ? "bg-blue-600 text-white rounded-br-none" 
-                  : "bg-gray-800 text-gray-100 rounded-bl-none border border-gray-700/50"
+                  : "bg-gray-800 text-gray-100 rounded-bl-none border border-gray-700"
               )}>
                 <MessageContent content={msg.content} />
               </div>
@@ -255,22 +227,22 @@ const Chat = () => {
               type="text"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="Message AI..."
-              className="w-full bg-gray-800 text-white rounded-xl pl-5 pr-24 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-gray-750 transition-all placeholder-gray-500 border border-gray-700 shadow-sm"
+              placeholder="Message OdinX..."
+              className="w-full bg-gray-800 text-white rounded-xl pl-5 pr-14 py-4 focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:bg-gray-800 transition-all placeholder-gray-600 border border-gray-700 shadow-sm"
               disabled={readyState !== ReadyState.OPEN}
             />
             <button
               type="submit"
               disabled={readyState !== ReadyState.OPEN || !inputMessage.trim()}
-              className="absolute right-2 bg-blue-600 text-white p-2.5 rounded-lg hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 transition-all shadow-lg shadow-blue-900/20"
+              className="absolute right-3 p-2 bg-blue-600/10 text-blue-500 rounded-lg hover:bg-blue-600 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-blue-500 transition-all"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                 <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
               </svg>
             </button>
           </form>
-          <div className="text-center mt-2">
-            <p className="text-[10px] text-gray-500">AI can make mistakes. Consider checking important information.</p>
+          <div className="text-center mt-3">
+             <p className="text-[10px] text-gray-600 uppercase tracking-widest">Powered by Gemini 2.0</p>
           </div>
         </footer>
       </div>
