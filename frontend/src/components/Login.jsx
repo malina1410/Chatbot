@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // 1. Imported Link
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -16,7 +16,7 @@ const Login = () => {
     const result = await login(username, password);
     
     if (result.success) {
-      navigate('/'); // Redirect to Chat after login
+      navigate('/'); 
     } else {
       setError(result.error);
     }
@@ -76,6 +76,17 @@ const Login = () => {
               Sign in
             </button>
           </div>
+
+          {/* 2. Added Sign Up Link Section */}
+          <div className="text-center mt-4">
+            <p className="text-sm text-gray-400">
+              Don't have an account?{' '}
+              <Link to="/signup" className="font-medium text-blue-500 hover:text-blue-400 hover:underline">
+                Sign up
+              </Link>
+            </p>
+          </div>
+
         </form>
       </div>
     </div>

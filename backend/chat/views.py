@@ -1,17 +1,15 @@
+import json  
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes 
+from rest_framework.permissions import IsAuthenticated, AllowAny 
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from .models import ChatSession, Message
 from .serializers import ChatSessionSerializer, MessageSerializer
-from .models import ChatSession
 
 @api_view(['POST'])
 def login_view(request):
@@ -68,3 +66,32 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
             session.save()
             return Response({'status': 'title updated', 'title': new_title})
         return Response({'error': 'title required'}, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['POST'])
+@permission_classes([AllowAny]) # Allows unauthenticated users to access this
+def register_view(request):
+    try:
+        data = json.loads(request.body)
+        username = data.get('username')
+        password = data.get('password')
+        confirm_password = data.get('confirm_password')
+
+        if not username or not password:
+            return JsonResponse({'error': 'Username and password are required'}, status=400)
+
+        if password != confirm_password:
+            return JsonResponse({'error': 'Passwords do not match'}, status=400)
+
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({'error': 'Username already taken'}, status=400)
+
+        # Create the user
+        user = User.objects.create_user(username=username, password=password)
+        
+        # Log them in immediately so they can chat right away
+        login(request, user)
+
+        return JsonResponse({'username': user.username, 'message': 'User created successfully'})
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
