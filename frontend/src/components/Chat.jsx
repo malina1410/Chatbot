@@ -7,6 +7,8 @@ import Sidebar from './Sidebar';
 
 const Chat = () => {
   const { user, logout } = useAuth();
+  
+  // Chat State
   const [messageHistory, setMessageHistory] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [sessionId, setSessionId] = useState(null);
@@ -19,12 +21,13 @@ const Chat = () => {
   const bottomRef = useRef(null);
   const WS_URL = `ws://${window.location.host}/ws/chat/`;
   
+  // WebSocket Connection
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(WS_URL, {
     onOpen: () => console.log('Connected to Brain'),
     shouldReconnect: () => true,
   });
 
-  // --- 1. NEW: Fetch Session List on Load ---
+  // --- 1. Fetch Session List on Load ---
   useEffect(() => {
     fetchSessions();
   }, []);
@@ -32,7 +35,6 @@ const Chat = () => {
   const fetchSessions = async () => {
     try {
       const response = await fetch('/api/sessions/', {
-        // This is CRITICAL: it sends the "sessionid" cookie to the backend
         credentials: 'include' 
       });
       if (response.ok) {
@@ -44,10 +46,10 @@ const Chat = () => {
     }
   };
 
-  // --- 2. NEW: Load Old Messages when Clicking Sidebar ---
+  // --- 2. Load Old Messages (Clicking Sidebar) ---
   const handleSelectSession = async (id) => {
     setActiveSessionId(id);
-    setSessionId(id); // Tell WebSocket to use this ID for future messages
+    setSessionId(id); 
     
     try {
       const response = await fetch(`/api/sessions/${id}/messages/`, {
@@ -55,7 +57,6 @@ const Chat = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        // Convert API format to our Frontend format
         const formattedMessages = data.map(msg => ({
           content: msg.content,
           isUser: msg.is_user
@@ -67,6 +68,60 @@ const Chat = () => {
     }
   };
 
+  // --- 3. Delete Session ---
+  const handleDeleteSession = async (id, e) => {
+    e.stopPropagation(); 
+    if (!window.confirm("Are you sure you want to delete this chat?")) return;
+
+    try {
+      // Get CSRF token from cookies for Django security
+      const csrfToken = document.cookie.split('csrftoken=')[1]?.split(';')[0];
+
+      const response = await fetch(`/api/sessions/${id}/`, {
+        method: 'DELETE',
+        headers: {
+          'X-CSRFToken': csrfToken
+        },
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        setSessions(sessions.filter(s => s.id !== id));
+        // If we deleted the active chat, clear the screen
+        if (sessionId === id) {
+          handleNewChat();
+        }
+      }
+    } catch (error) {
+      console.error("Failed to delete session:", error);
+    }
+  };
+
+  // --- 4. Rename Session ---
+  const handleRenameSession = async (id, newTitle) => {
+    try {
+      const csrfToken = document.cookie.split('csrftoken=')[1]?.split(';')[0];
+
+      const response = await fetch(`/api/sessions/${id}/rename/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ title: newTitle }),
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        setSessions(sessions.map(s => 
+          s.id === id ? { ...s, title: newTitle } : s
+        ));
+      }
+    } catch (error) {
+      console.error("Failed to rename session:", error);
+    }
+  };
+
   // Handle Incoming WebSocket Messages
   useEffect(() => {
     if (lastJsonMessage !== null) {
@@ -75,13 +130,14 @@ const Chat = () => {
         return;
       }
       
-      // If the backend sends a session_id (start of new chat), save it
+      // If backend sends a session_id, update state
       if (lastJsonMessage.session_id) {
         setSessionId(lastJsonMessage.session_id);
         
-        // OPTIONAL: Refresh sidebar to show the new title immediately
+        // Refresh sidebar to show the new auto-generated title
         if (!activeSessionId) {
-            fetchSessions();
+            // Slight delay to ensure DB is updated
+            setTimeout(fetchSessions, 1000);
         }
       }
 
@@ -92,9 +148,9 @@ const Chat = () => {
          }));
       }
     }
-  }, [lastJsonMessage]);
+  }, [lastJsonMessage, activeSessionId]);
 
-  // Auto-scroll
+  // Auto-scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messageHistory]);
@@ -125,14 +181,18 @@ const Chat = () => {
   return (
     <div className="flex h-screen bg-gray-900 text-gray-100 overflow-hidden">
       
+      {/* Sidebar with all Props */}
       <Sidebar 
         isOpen={isSidebarOpen}
         onNewChat={handleNewChat}
         sessions={sessions}
         activeSessionId={activeSessionId}
         onSelectSession={handleSelectSession}
+        onDeleteSession={handleDeleteSession}
+        onRenameSession={handleRenameSession}
       />
 
+      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col h-screen relative bg-gray-900 w-full transition-all duration-300">
         
         {/* Header */}
@@ -188,6 +248,7 @@ const Chat = () => {
           <div ref={bottomRef} />
         </main>
 
+        {/* Input Footer */}
         <footer className="p-4 bg-gray-900 border-t border-gray-800">
           <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto relative flex items-center">
             <input
