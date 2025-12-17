@@ -1,18 +1,16 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link, useNavigate } from 'react-router-dom'; // 1. Import useNavigate
+import { Link, useNavigate } from 'react-router-dom';
 
 const Signup = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  
-  // 2. New State for the Success Popup
   const [showSuccess, setShowSuccess] = useState(false); 
 
   const { login } = useAuth();
-  const navigate = useNavigate(); // Hook for redirection
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,15 +34,11 @@ const Signup = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // 3. Show Success Message
         setShowSuccess(true);
-        
-        // 4. Wait 1.5 seconds so user sees the popup, then login & redirect
         setTimeout(async () => {
             await login(data.username, password);
-            navigate('/'); // Force redirect to Chat
+            navigate('/'); 
         }, 1500);
-
       } else {
         setError(data.error || 'Registration failed');
       }
@@ -54,58 +48,74 @@ const Signup = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-900 text-gray-100 relative">
+    // 1. BACKGROUND: Same Deep Radial Gradient as Login
+    <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-800 via-gray-950 to-black px-4 relative overflow-hidden text-gray-100">
       
+      {/* 2. DECORATION: Subtle ambient glow */}
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-purple-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+
       {/* --- SUCCESS POPUP --- */}
       {showSuccess && (
-        <div className="fixed top-10 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-8 py-4 rounded-lg shadow-2xl z-50 animate-bounce flex items-center gap-3">
+        <div className="fixed top-10 left-1/2 transform -translate-x-1/2 bg-emerald-500/90 backdrop-blur-md text-white px-8 py-4 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.5)] z-50 animate-bounce flex items-center gap-3 border border-emerald-400/50">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-          <span className="font-bold text-lg">Success! {username} created.</span>
+          <span className="font-bold text-lg">Identity Created: {username}</span>
         </div>
       )}
-      {/* --------------------- */}
 
-      <div className="w-full max-w-md p-8 space-y-6 bg-gray-800 rounded-xl shadow-2xl border border-gray-700">
-        <h2 className="text-3xl font-bold text-center text-blue-500">Create Account</h2>
+      {/* 3. CARD: Glassmorphism Effect */}
+      <div className="max-w-md w-full p-10 bg-gray-900/60 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-800 relative z-10 space-y-8">
+        
+        <div className="text-center">
+          <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-2">
+            OdinX
+          </h1>
+          <p className="text-gray-400 text-sm">
+            Create a secure neural identity
+          </p>
+        </div>
         
         {error && (
-          <div className="p-3 text-sm text-red-200 bg-red-900/50 border border-red-500/50 rounded-lg">
+          <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg text-sm text-center">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-400">Username</label>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Username</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 mt-1 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-white transition-all"
+              className="block w-full px-4 py-3 bg-gray-950/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+              placeholder="Ex: WebMaster1410"
               required
-              disabled={showSuccess} // Disable input during success animation
+              disabled={showSuccess}
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-400">Password</label>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 mt-1 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-white transition-all"
+              className="block w-full px-4 py-3 bg-gray-950/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+              placeholder="••••••••"
               required
               disabled={showSuccess}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-400">Confirm Password</label>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Confirm Password</label>
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-2 mt-1 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-white transition-all"
+              className="block w-full px-4 py-3 bg-gray-950/50 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+              placeholder="••••••••"
               required
               disabled={showSuccess}
             />
@@ -114,22 +124,24 @@ const Signup = () => {
           <button
             type="submit"
             disabled={showSuccess}
-            className={`w-full py-3 font-semibold text-white rounded-lg transition-all shadow-lg ${
-                showSuccess 
-                ? 'bg-green-600 cursor-default' 
-                : 'bg-blue-600 hover:bg-blue-500 hover:shadow-blue-500/25'
-            }`}
+            className={`w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white shadow-lg transition-all 
+              ${showSuccess 
+                ? 'bg-emerald-600 cursor-default' 
+                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 hover:shadow-blue-500/25'
+              }`}
           >
-            {showSuccess ? 'Redirecting...' : 'Sign Up'}
+            {showSuccess ? 'Redirecting...' : 'Establish Link'}
           </button>
         </form>
 
-        <p className="text-sm text-center text-gray-400">
-          Already have an account?{' '}
-          <Link to="/login" className="text-blue-400 hover:text-blue-300 hover:underline">
-            Log in
-          </Link>
-        </p>
+        <div className="text-center pt-2">
+          <p className="text-xs text-gray-500">
+            Already have an identity?{' '}
+            <Link to="/login" className="font-medium text-blue-400 hover:text-blue-300 hover:underline transition-colors">
+              Login Here
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
