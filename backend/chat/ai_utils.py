@@ -20,21 +20,18 @@ def get_ai_response(history_messages, user_input):
         user_input: String
     """
     try:
-        # 3. Initialize Model
-        model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            system_instruction=SYSTEM_INSTRUCTION
-        )
+        # 1. Initialize Model (Using standard gemini-pro)
+        # Note: We removed 'system_instruction' because v1.0 doesn't support it.
+        model = genai.GenerativeModel("gemini-2.0-flash")
 
-        # 4. Start Chat with History
+        # 2. Start Chat with History
         chat = model.start_chat(history=history_messages)
 
-        # 5. Send Message
+        # 3. Send Message
         response = chat.send_message(user_input)
         
         return response.text.strip()
 
     except Exception as e:
-        # Log the error (in a real app, use logging)
         print(f"AI Error: {e}")
         return "I am currently experiencing connection issues with my brain. Please try again in a moment."

@@ -9,7 +9,10 @@ def get_user(session_key):
     # This imports SessionStore correctly for the engine you are using
     from django.contrib.sessions.backends.db import SessionStore
     engine = SessionStore(session_key=session_key)
-    user_id = engine.get_decoded().get('_auth_user_id')
+    
+    # FIX: Use direct dictionary access instead of get_decoded()
+    # Django 4.0+ handles the decoding automatically when you access the key.
+    user_id = engine.get('_auth_user_id')
     
     if not user_id:
         return AnonymousUser()
